@@ -1,0 +1,223 @@
+{
+  "info": {
+    "name": "TaskFlow API",
+    "description": "Görev yaşam döngüsü ve temel hata senaryoları.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:3000"
+    },
+    {
+      "key": "taskId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "01 Görev ekle",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 201', function () { pm.response.to.have.status(201); });",
+              "const task = pm.response.json();",
+              "pm.collectionVariables.set('taskId', task.id);",
+              "pm.test('Kimlik, atama ve başlangıç durumu doğru', function () {",
+              "  pm.expect(task.id).to.match(/^[0-9a-f-]{36}$/);",
+              "  pm.expect(task.assignee).to.eql('Deniz Akın');",
+              "  pm.expect(task.status).to.eql('pending');",
+              "  pm.expect(pm.response.headers.get('Location')).to.eql('/tasks/' + task.id);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/tasks",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Katalog verisini hazırla\",\n  \"description\": \"Ürün kartlarına örnek veri ekle.\",\n  \"assignee\": \"Deniz Akın\",\n  \"status\": \"pending\",\n  \"priority\": \"medium\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "02 Görevleri listele",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('Yeni görev listede var', function () {",
+              "  const id = pm.collectionVariables.get('taskId');",
+              "  pm.expect(pm.response.json().some(task => task.id === id)).to.be.true;",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/tasks"
+      }
+    },
+    {
+      "name": "03 Görev detayını al",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('Doğru görevin detayı döndü', function () {",
+              "  pm.expect(pm.response.json().id).to.eql(pm.collectionVariables.get('taskId'));",
+              "  pm.expect(pm.response.json().title).to.eql('Katalog verisini hazırla');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/tasks/{{taskId}}"
+      }
+    },
+    {
+      "name": "04 Görevi güncelle",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('Durum ve öncelik güncellendi', function () {",
+              "  const task = pm.response.json();",
+              "  pm.expect(task.id).to.eql(pm.collectionVariables.get('taskId'));",
+              "  pm.expect(task.status).to.eql('completed');",
+              "  pm.expect(task.priority).to.eql('high');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/tasks/{{taskId}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Katalog verisini hazırla\",\n  \"description\": \"Ürün kartlarının örnek verisi kontrol edildi.\",\n  \"assignee\": \"Deniz Akın\",\n  \"status\": \"completed\",\n  \"priority\": \"high\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "05 Görevi sil",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 204', function () { pm.response.to.have.status(204); });",
+              "pm.test('Yanıt gövdesi boş', function () { pm.expect(pm.response.text()).to.eql(''); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/tasks/{{taskId}}"
+      }
+    },
+    {
+      "name": "06 Silinen görevi kontrol et",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 404', function () { pm.response.to.have.status(404); });",
+              "pm.test('Görev bulunamadı mesajı döndü', function () {",
+              "  pm.expect(pm.response.json().error).to.eql('Görev bulunamadı.');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/tasks/{{taskId}}"
+      }
+    },
+    {
+      "name": "07 Geçersiz görev gönder",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', function () { pm.response.to.have.status(400); });",
+              "pm.test('Başlık doğrulama mesajı döndü', function () {",
+              "  pm.expect(pm.response.json().error).to.include('Başlık');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/tasks",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \" \"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    }
+  ]
+}
